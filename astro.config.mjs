@@ -6,8 +6,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export default defineConfig({
-  site: 'https://shadowprod3d.github.io',
-
+  site: 'https://shadowprod3d.github.io', // your GH Pages URL
+  output: 'static',                       // build purely static files
+  base: './',                             // relative base so assets & JS load
   scopedStyleStrategy: 'class',
 
   server: {
@@ -17,22 +18,20 @@ export default defineConfig({
   vite: {
     resolve: {
       alias: {
-        '@/': `${path.resolve(__dirname, 'src')}/`
-      }
+        '@/': `${path.resolve(__dirname, 'src')}/`, // make `@/` work
+      },
     },
     css: {
       preprocessorOptions: {
         scss: {
           additionalData: `@use 'sass:math'; @use 'sass:map'; @use "@/styles/import" as *;`
-        }
-      }
+        },
+      },
     },
     build: {
-      assetsInlineLimit: 0
-    }
+      assetsInlineLimit: 0,
+    },
   },
 
-  devToolbar: {
-    enabled: false
-  }
+  devToolbar: { enabled: false },
 });
