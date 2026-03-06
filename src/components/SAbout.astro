@@ -1,0 +1,287 @@
+<section id="about" class="s-about" data-intersect>
+  <div class="s__inner js-inner">
+    <div class="s__block s__block--about">
+      <h2 class="s__title">About</h2>
+
+      <div class="s__content">
+        <p>
+          I'm Mahdi Charfi, a passionate 3D Weapon artist with a journey that began in 2019, allowing me to thrive in creative environments and continuously push my boundaries. Through years of education and hands-on experience, I've honed my 3D design skills to craft visually compelling designs that resonate with audiences. I'm dedicated to creating impactful work that not only meets expectations but also connects deeply with those who experience it.
+        </p>
+        <p>Where Darkness Unravels :</p>
+        <p>
+          For me, darkness serves as a powerful artistic fuel, driving my creativity and shaping my vision. It’s not just the absence of light but a space where untold stories, raw emotions, and hidden truths come to life. By embracing the shadows, I channel depth, mystery, and introspection into my work, transforming the void into striking, meaningful creations. Darkness challenges me to push boundaries, experiment boldly, and craft art that resonates with emotion and intrigue.
+        </p>
+        <p> Multifaceted Expertise :</p>
+        <p>
+          With my expertise in industry-leading 3D software such as Maya, Substance Painter, and ZBrush, combined with proficiency in Photoshop, Illustrator, and Premiere Pro, I bring a versatile and highly skilled approach to any project. My diverse skill set positions me as a valuable asset and a dependable partner for your team.
+        </p>
+      </div></div></div><svg class="s__grid js-grid">
+    <path class="js-path" d=""></path>
+  </svg>
+
+  <canvas class="s__canvas js-canvas"></canvas>
+</section>
+
+<script>
+  import Emitter from '../utils/Emitter'
+  import Ticker from '../utils/Ticker'
+
+  class Section {
+    el: HTMLElement
+    inner: HTMLElement
+    svg: HTMLElement
+    path: HTMLElement
+    canvas: HTMLCanvasElement
+    ctx: CanvasRenderingContext2D
+
+    bounding: {
+      left: number
+      top: number
+      width: number
+      height: number
+      innerWidth: number
+      innerHeight: number
+      offsetY: number
+    }
+
+    scroll: {
+      start: number
+      end: number
+      p: number
+      sp: number
+    }
+
+    lines: any[]
+    isPaused: boolean
+    isForced: boolean
+
+    constructor() {
+      this.el = document.querySelector('.s-about')
+      this.inner = this.el.querySelector('.js-inner')
+      this.svg = this.el.querySelector('.js-grid')
+      this.path = this.el.querySelector('.js-path')
+      this.canvas = document.querySelector('.js-canvas')
+      this.ctx = this.canvas.getContext('2d')
+
+      this.lines = []
+      this.isPaused = true
+      this.isForced = false
+
+      if (document.readyState === 'complete') {
+        Ticker.nextTick(this.init, this)
+      } else {
+        Emitter.once('siteLoaded', this.init, this)
+      }
+    }
+
+    init() {
+      this.setSize()
+      this.setScroll()
+      this.bindEvents()
+
+      if (this.el.classList.contains('is-in-view') && this.isPaused) {
+        this.isPaused = false
+        Emitter.on('tick', this.tick, this)
+      }
+    }
+
+    bindEvents() {
+      Emitter.on('resize', this.onResize, this)
+      Emitter.on('scroll', this.onScroll, this)
+
+      this.el.addEventListener('intersect', (e: any) => {
+        this.isPaused = !e.detail.isIntersecting
+        if (this.isPaused) {
+          Emitter.off('tick', this.tick, this)
+        } else {
+          Emitter.on('tick', this.tick, this)
+        }
+      }, { passive: true })
+    }
+
+    onResize(widthChanged) {
+      if (widthChanged) {
+        this.setSize()
+        this.setScroll()
+        this.isForced = true
+      }
+    }
+
+    onScroll(scrollY) {
+      const { scroll } = this
+      const trigger = scrollY + window.safeHeight
+
+      if (trigger < scroll.start) {
+        scroll.p = 0
+      } else if (trigger > scroll.end) {
+        scroll.p = 1
+      } else {
+        scroll.p = (trigger - scroll.start) / (scroll.end - scroll.start)
+      }
+    }
+
+    setSize() {
+      const { canvas, svg } = this
+      const bounding = this.el.getBoundingClientRect()
+
+      this.bounding = {
+        left: bounding.left,
+        top: bounding.top,
+        width: this.el.clientWidth,
+        height: this.el.clientHeight,
+        innerWidth: this.inner.clientWidth,
+        innerHeight: this.inner.clientHeight,
+        offsetY: 0,
+      }
+
+      svg.style.width = `${this.bounding.width}px`
+      svg.style.height = `${this.bounding.height}px`
+      canvas.width = this.bounding.width
+      canvas.height = this.bounding.height
+    }
+
+    setScroll() {
+      const { bounding } = this
+      this.scroll = {
+        start: bounding.top + window.scrollY,
+        end: bounding.top + window.scrollY + bounding.height + window.safeHeight,
+        p: 0,
+        sp: 0,
+      }
+      this.onScroll(window.scrollY)
+      this.scroll.sp = this.scroll.p
+    }
+
+    setLines() {
+      const { bounding } = this
+      this.lines = []
+
+      const innerX = (bounding.width - bounding.innerWidth) / 2
+      const innerY = (bounding.height - bounding.innerHeight) / 2 + bounding.offsetY
+
+      const vLines = window.safeWidth > 767 ? 12 : 8
+      const outerGapX = bounding.width / vLines
+      const innerGapX = bounding.innerWidth / vLines
+
+      const outer = { x1: 0, x2: bounding.width, y1: 0, y2: bounding.height }
+      const inner = { x1: innerX, x2: innerX + bounding.innerWidth, y1: innerY, y2: innerY + bounding.innerHeight }
+
+      // Vertical perspective lines connecting outer frame to inner box
+      for (let i = 0; i <= vLines; i++) {
+        this.lines.push([
+          { x: outerGapX * i, y: outer.y1 },
+          { x: innerX + innerGapX * i, y: inner.y1 }
+        ])
+        this.lines.push([
+          { x: outerGapX * i, y: outer.y2 },
+          { x: innerX + innerGapX * i, y: inner.y2 }
+        ])
+      }
+      this.drawLines()
+    }
+
+    drawLines() {
+      let d = ''
+      this.lines.forEach((points) => {
+        d += `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y} `
+      })
+      this.path.setAttribute('d', d)
+    }
+
+    tick() {
+      const { bounding, el, scroll } = this
+      scroll.sp += (scroll.p - scroll.sp) * 0.2
+      const sd = Math.round((scroll.p - scroll.sp) * 1000) / 1000
+
+      bounding.offsetY = (window.safeWidth > 767 ? 400 : 200) * (this.scroll.sp * 2 - 1)
+      el.style.setProperty('--offset-y', `${this.bounding.offsetY}px`)
+
+      if (sd !== 0 || this.isForced) {
+        this.setLines()
+      }
+      this.isForced = false
+    }
+  }
+
+  new Section()
+</script>
+
+<style lang="scss">
+  .s-about {
+    --width: 39.25rem;
+    position: relative;
+    z-index: 3;
+    padding: 15rem 0;
+    overflow: hidden;
+
+    @include mq(desktop-xs) { --width: 32rem; }
+    @include mq(tablet-sm) { 
+      --width: 70vw; 
+      padding: 7.5rem 0;
+    }
+    @include mq(phone) { --width: 80vw; }
+
+    .s__inner {
+      position: relative;
+      z-index: 2;
+      margin: 0 auto;
+      width: var(--width);
+      border: 1px solid color(secondary);
+      transform: translate3d(0, var(--offset-y), 0);
+      will-change: transform;
+    }
+
+    .s__title {
+      margin: 0;
+      padding: 0 0 2px;
+      background: color(secondary);
+      color: color(primary);
+      font: 700 12px / 24px font-family(fraktion);
+      letter-spacing: 0.1em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .s__content {
+      padding: 4.5rem;
+      font: 200 2rem / 1.5 font-family(editorial);
+
+      @include mq(desktop-xs) { font-size: 1.5rem; }
+      @include mq(phone) { padding: 15vw 10vw; }
+    }
+
+    .s__grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+
+      path {
+        fill: none;
+        stroke: color(secondary);
+        stroke-width: 1px;
+      }
+    }
+
+    .s__canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 3;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    &.is-out-of-view {
+      .s__inner {
+        transform: none;
+        will-change: none;
+      }
+      .s__grid, .s__canvas { display: none; }
+    }
+  }
+</style>
