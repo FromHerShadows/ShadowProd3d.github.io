@@ -5,9 +5,8 @@ import path, { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// https://astro.build/config
 export default defineConfig({
-  site: 'https://public.wodniack.dev',
+  site: 'https://shadowprod3d.github.io',
 
   scopedStyleStrategy: 'class',
 
